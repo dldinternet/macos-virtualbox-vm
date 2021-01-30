@@ -63,7 +63,7 @@ function createISO()
     echo
     echo Restore the Base System into the ${isoName} ISO image
     echo --------------------------------------------------------------------------
-    if [ "${isoName}" == "HighSierra" ] || [ "${isoName}" == "Mojave" ] ; then
+    if [ "${isoName}" == "Catalina" ] || [ "${isoName}" == "Big Sur" ] || [ "${isoName}" == "HighSierra" ] || [ "${isoName}" == "Mojave" ] ; then
       echo $ asr restore -source "${installerAppName}"/Contents/SharedSupport/BaseSystem.dmg -target /Volumes/install_build -noprompt -noverify -erase
       asr restore -source "${installerAppName}"/Contents/SharedSupport/BaseSystem.dmg -target /Volumes/install_build -noprompt -noverify -erase
     else
@@ -74,6 +74,10 @@ function createISO()
     echo
     echo Remove Package link and replace with actual files
     echo --------------------------------------------------------------------------
+    if [ "${isoName}" == "Catalina" ] || [ "${isoName}" == "Big Sur" ] ; then
+      echo $ ditto -V /Volumes/install_app/Packages /Volumes/macOS\ Base\ System/System/Installation/
+      ditto -V /Volumes/install_app/Packages /Volumes/macOS\ Base\ System/System/Installation/
+    else
     if [ "${isoName}" == "HighSierra" ] || [ "${isoName}" == "Mojave" ] ; then
       echo $ ditto -V /Volumes/install_app/Packages /Volumes/OS\ X\ Base\ System/System/Installation/
       ditto -V /Volumes/install_app/Packages /Volumes/OS\ X\ Base\ System/System/Installation/
@@ -83,10 +87,17 @@ function createISO()
       echo $ cp -rp /Volumes/install_app/Packages /Volumes/OS\ X\ Base\ System/System/Installation/
       cp -rp /Volumes/install_app/Packages /Volumes/OS\ X\ Base\ System/System/Installation/
     fi
+    fi
 
     echo
     echo Copy macOS ${isoName} installer dependencies
     echo --------------------------------------------------------------------------
+    if [ "${isoName}" == "Catalina" ] || [ "${isoName}" == "Big Sur" ] ; then
+      echo $ ditto -V "${installerAppName}"/Contents/SharedSupport/BaseSystem.chunklist /Volumes/macOS\ Base\ System/BaseSystem.chunklist
+      ditto -V "${installerAppName}"/Contents/SharedSupport/BaseSystem.chunklist /Volumes/macOS\ Base\ System/BaseSystem.chunklist
+      echo $ ditto -V "${installerAppName}"/Contents/SharedSupport/BaseSystem.dmg /Volumes/macOS\ Base\ System/BaseSystem.dmg
+      ditto -V "${installerAppName}"/Contents/SharedSupport/BaseSystem.dmg /Volumes/macOS\ Base\ System/BaseSystem.dmg
+    else
     if [ "${isoName}" == "HighSierra" ] || [ "${isoName}" == "Mojave" ] ; then
       echo $ ditto -V "${installerAppName}"/Contents/SharedSupport/BaseSystem.chunklist /Volumes/OS\ X\ Base\ System/BaseSystem.chunklist
       ditto -V "${installerAppName}"/Contents/SharedSupport/BaseSystem.chunklist /Volumes/OS\ X\ Base\ System/BaseSystem.chunklist
@@ -97,6 +108,7 @@ function createISO()
       cp -rp /Volumes/install_app/BaseSystem.chunklist /Volumes/OS\ X\ Base\ System/BaseSystem.chunklist
       echo $ cp -rp /Volumes/install_app/BaseSystem.dmg /Volumes/OS\ X\ Base\ System/BaseSystem.dmg
       cp -rp /Volumes/install_app/BaseSystem.dmg /Volumes/OS\ X\ Base\ System/BaseSystem.dmg
+    fi
     fi
 
     echo
@@ -158,31 +170,50 @@ function installerExists()
 # Main script code
 #
 # Eject installer disk in case it was opened after download from App Store
-for disk in $(hdiutil info | grep /dev/disk | grep partition | cut -f 1); do
-  hdiutil detach -force ${disk}
-done
+#for disk in $(hdiutil info | grep /dev/disk | grep partition | cut -f 1); do
+#  hdiutil detach -force ${disk}
+#done
+installerAppName=${1}
+isoName=${2}
 
 # See if we can find an eligible installer.
 # If successful, then create the iso file from the installer.
-
-if installerExists "Install macOS Mojave.app" ; then
-  createISO "Install macOS Mojave.app" "Mojave"
+if [ -z "$installerName" -o -z "$isoName" ] ; then
+if installerExists "Install macOS Big Sur.app" ; then
+  installerAppName="Install macOS Big Sur.app"
+  isoName="Big Sur"
 else
-  if installerExists "Install macOS High Sierra.app" ; then
-    createISO "Install macOS High Sierra.app" "HighSierra"
-  else
-    if installerExists "Install macOS Sierra.app" ; then
-      createISO "Install macOS Sierra.app" "Sierra"
-    else
-      if installerExists "Install OS X El Capitan.app" ; then
-        createISO "Install OS X El Capitan.app" "ElCapitan"
-      else
-        if installerExists "Install OS X Yosemite.app" ; then
-          createISO "Install OS X Yosemite.app" "Yosemite"
-        else
-          echo "Could not find installer for Yosemite (10.10), El Capitan (10.11), Sierra (10.12), High Sierra (10.13) or Mojave (10.14)."
-        fi
-      fi
-    fi
-  fi
+if installerExists "Install macOS Catalina.app" ; then
+  installerAppName="Install macOS Catalina.app"
+  isoName="Catalina"
+else
+if installerExists "Install macOS Mojave.app" ; then
+  installerAppName="Install macOS Mojave.app"
+  isoName="Mojave"
+else
+if installerExists "Install macOS High Sierra.app" ; then
+  installerAppName="Install macOS High Sierra.app"
+  isoName="HighSierra"
+else
+if installerExists "Install macOS Sierra.app" ; then
+  installerAppName="Install macOS Sierra.app"
+  isoName="Sierra"
+else
+if installerExists "Install OS X El Capitan.app" ; then
+  installerAppName="Install OS X El Capitan.app"
+  isoName="ElCapitan"
+else
+if installerExists "Install OS X Yosemite.app" ; then
+  installerAppName="Install OS X Yosemite.app"
+  isoName="Yosemite"
+else
+  echo "Could not find installer for Yosemite (10.10), El Capitan (10.11), Sierra (10.12), High Sierra (10.13) or Mojave (10.14)."
 fi
+fi
+fi
+fi
+fi
+fi
+fi
+fi
+createISO "$installerAppName" "$isoName"
